@@ -78,6 +78,7 @@ class ModifiableMap(object):
 def intersect(map1, map2, logger = None):
     if logger is None:
         logger = lambda m : None
+    map1 = ModifiableMap(map1)
     map2 = ModifiableMap(map2)
     last_percent = -1
     for n, f1 in enumerate(map1):
@@ -93,6 +94,10 @@ def intersect(map1, map2, logger = None):
             logger("\r%s\rPlot %s -> %s went from %s to %s\n" % (' ' * 40, f1.objectid, f2.objectid, f1.zoning, f2.zoning))
             last_percent = -1
             map2.append(ZoningFeature("%s.2" % f2.objectid, f2.zoning, f2.geometry.difference(map2[i].geometry)))
+            # Delete the portion of overlap in f1 to hopefully speed up further comparisons:
+            map1[n] = ZoningFeature(f1.objectid, f1.zoning, f1.geometry.difference(isect))
+            if map1[n].geometry.is_empty:
+                break
     logger('\n')
     return map2
 

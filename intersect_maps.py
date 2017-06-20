@@ -1,7 +1,13 @@
+import functools
 import itertools
 import json
+import pyproj
 from shapely.geometry import mapping, MultiPolygon, Polygon, shape
+import shapely.ops
 import time
+
+def square_meters_to_acres(m2):
+    return m2 * 0.000247105
 
 class ZoningFeature(object):
     def __init__(self, objectid, zoning, geometry, old_zoning = None):
@@ -11,6 +17,21 @@ class ZoningFeature(object):
             old_zoning = []
         self.old_zoning = old_zoning
         self.geometry = geometry
+        self._area = None
+    def area(self):
+        """Calculates the area of this zoning feature in square meters"""
+        if self._area is None:
+            geom_aea = shapely.ops.transform(
+                functools.partial(
+                    pyproj.transform,
+                    pyproj.Proj(init='EPSG:4326'),
+                    pyproj.Proj(
+                        proj='aea',
+                        lat1=self.geometry.bounds[1],
+                        lat2=self.geometry.bounds[3])),
+                self.geometry)
+            self._area = geom_aea.area
+        return self._area
     def to_geo(self):
         properties = {
             "OBJECTID":self.objectid,
@@ -139,7 +160,7 @@ def intersect(map1, map2, logger = None):
             if isect.is_empty:
                 continue
             map2[i] = ZoningFeature("%s->%s" % (f1.objectid, f2.objectid), f2.zoning, f2.geometry.difference(isect), f2.old_zoning + f1.zoning)
-            logger("\r%s\rPlot %s -> %s went from %s to %s\n" % (' ' * 40, f1.objectid, f2.objectid, f1.zoning, f2.zoning))
+            logger("\r%s\rPlot %s (%.02f acres) -> %s (%.02f acres) went from %s to %s\n" % (' ' * 40, f1.objectid, square_meters_to_acres(f1.area()), f2.objectid, square_meters_to_acres(f2.area()), f1.zoning, f2.zoning))
             last_percent = -1
             map2.append(ZoningFeature("%s.2" % f2.objectid, f2.zoning, f2.geometry.difference(map2[i].geometry)))
             # Delete the portion of overlap in f1 to hopefully speed up further comparisons:

@@ -1,6 +1,6 @@
 import itertools
 import json
-from shapely.geometry import MultiPolygon, Polygon, shape
+from shapely.geometry import mapping, MultiPolygon, Polygon, shape
 
 class ZoningFeature(object):
     def __init__(self, objectid, zoning, geometry, old_zoning = None):
@@ -10,11 +10,28 @@ class ZoningFeature(object):
             old_zoning = []
         self.old_zoning = old_zoning
         self.geometry = geometry
+    def to_geo(self):
+        properties = {
+            "OBJECTID":self.objectid,
+        }
+        if self.old_zoning is not None:
+            properties["OLD_ZONING"] = self.old_zoning
+        if (type(self.zoning) == tuple or type(self.zoning) == list) and len(self.zoning) == 2:
+            properties["CODE"], properties["CATEGORY"] = self.zoning
+        else:
+            properties["LONG_CODE"] = self.zoning
+        return {
+            "type":"Feature",
+            "properties":properties,
+            "geometry":mapping(self.geometry)
+            }
 
 class ZoningMap(object):
     def __init__(self, stream):
         self.json = json.load(stream)
         self._features = []
+    def save(self, outstream):
+        json.dump(self.json, outstream)
     def __len__(self):
         return len(self.json["features"])
     def __getitem__(self, key):
@@ -38,7 +55,11 @@ class ZoningMap(object):
                 zoning = properties["LONG_CODE"]
             else:
                 zoning = (properties["CODE"], properties["CATEGORY"])
-            self._features.append(ZoningFeature(properties["OBJECTID"], [zoning], shape(feature["geometry"])))
+            if "OLD_ZONING" in properties:
+                old_zoning = properties["OLD_ZONING"]
+            else:
+                old_zoning = None
+            self._features.append(ZoningFeature(properties["OBJECTID"], [zoning], shape(feature["geometry"]), old_zoning))
         return self._features[key]
     def __iter__(self):
         for i in range(len(self)):
@@ -50,6 +71,9 @@ class ModifiableMap(object):
         self._feature_iter = iter(zmap)
         self._cache = []
         self._appended = []
+    def save(self, outstream):
+        features = [feature.to_geo() for feature in self]
+        json.dump({"type":"FeatureCollection","features":features}, outstream)
     def __len__(self):
         return len(self.zmap) + len(self._appended)
     def __getitem__(self, key):
@@ -98,6 +122,8 @@ def intersect(map1, map2, logger = None):
             map1[n] = ZoningFeature(f1.objectid, f1.zoning, f1.geometry.difference(isect))
             if map1[n].geometry.is_empty:
                 break
+            if i >= 50:break
+        if n >= 50:break
     logger('\n')
     return map2
 
@@ -109,4 +135,12 @@ if __name__ == "__main__":
             def logger(msg):
                 sys.stderr.write(msg)
                 sys.stderr.flush()
-            intersect(ZoningMap(f1), ZoningMap(f2), logger = logger)
+            intersected = intersect(ZoningMap(f1), ZoningMap(f2), logger = logger)
+            intersected.save(sys.stdout)
+            ## Sanity check:
+            #import StringIO
+            #output = StringIO.StringIO()
+            #intersected.save(output)
+            #output.seek(0)
+            #list(ZoningMap(output))
+            #output.close()

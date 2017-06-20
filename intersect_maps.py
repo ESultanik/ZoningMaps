@@ -122,8 +122,6 @@ def intersect(map1, map2, logger = None):
             map1[n] = ZoningFeature(f1.objectid, f1.zoning, f1.geometry.difference(isect))
             if map1[n].geometry.is_empty:
                 break
-            if i >= 50:break
-        if n >= 50:break
     logger('\n')
     return map2
 

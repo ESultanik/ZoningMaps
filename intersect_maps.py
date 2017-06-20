@@ -1,6 +1,7 @@
 import itertools
 import json
 from shapely.geometry import mapping, MultiPolygon, Polygon, shape
+import time
 
 class ZoningFeature(object):
     def __init__(self, objectid, zoning, geometry, old_zoning = None):
@@ -105,12 +106,35 @@ def intersect(map1, map2, logger = None):
     map1 = ModifiableMap(map1)
     map2 = ModifiableMap(map2)
     last_percent = -1
+    last_log_time = 0
+    start_time = time.time()
     for n, f1 in enumerate(map1):
         for i, f2 in enumerate(map2):
-            percent = float(int(float((n * len(map2) + i) * 10000) / float(len(map1) * len(map2)))) / 100.0
-            if percent > last_percent:
-                logger("\r%s\r%.2f%%" % (' ' * 40, percent))
+            raw_percent = float((n * len(map2) + i) * 10000) / float(len(map1) * len(map2))
+            percent = float(int(raw_percent)) / 100.0
+            raw_percent /= 100.0
+            current_time = time.time()
+            if percent > last_percent or current_time - last_log_time >= 3:
+                if raw_percent == 0:
+                    time_remaining = "????"
+                else:
+                    seconds_remaining = (current_time - start_time) / raw_percent * (100.0 - raw_percent)
+                    time_remaining = ""
+                    if seconds_remaining >= 60**2:
+                        hours = int(seconds_remaining / 60**2)
+                        time_remaining += "%d:" % hours
+                        seconds_remaining -= hours * 60**2
+                    if seconds_remaining >= 60 or time_remaining:
+                        minutes = int(seconds_remaining / 60)
+                        time_remaining += "%02d:" % minutes
+                        seconds_remaining -= minutes * 60
+                    if not time_remaining:
+                        time_remaining = "%.2f seconds" % seconds_remaining
+                    else:
+                        time_remaining += "%02d" % int(seconds_remaining)
+                logger("\r%s\r%.2f%% %s remaining" % (' ' * 40, percent, time_remaining))
                 last_percent = percent
+                last_log_time = current_time
             isect = f1.geometry.intersection(f2.geometry)
             if isect.is_empty:
                 continue

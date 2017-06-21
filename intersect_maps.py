@@ -11,6 +11,8 @@ def intersect(map1, map2, logger = None):
     last_log_time = 0
     start_time = time.time()
     for n, f1 in enumerate(map1):
+        if f1.geometry.is_empty:
+            continue
         for i, f2 in enumerate(map2):
             raw_percent = float((n * len(map2) + i) * 10000) / float(len(map1) * len(map2))
             percent = float(int(raw_percent)) / 100.0
@@ -37,14 +39,35 @@ def intersect(map1, map2, logger = None):
                 logger("\r%s\r%.2f%% %s remaining" % (' ' * 40, percent, time_remaining))
                 last_percent = percent
                 last_log_time = current_time
-            isect = f1.geometry.intersection(f2.geometry)
+            if f2.geometry.is_empty:
+                continue
+            try:
+                isect = f1.geometry.intersection(f2.geometry)
+            except Exception as e:
+                logger("\r%s\rError: %s\n" % (' ' * 40, e))
+                last_percent = -1
+                continue
             if isect.is_empty:
                 continue
-            map2[i] = zoning.ZoningFeature("%s->%s" % (f1.objectid, f2.objectid), f2.zoning, f2.geometry.difference(isect), f2.old_zoning + f1.zoning)
-            logger("\r%s\rPlot %s (%.02f acres) -> %s (%.02f acres) went from %s to %s\n" % (' ' * 40, f1.objectid, zoning.square_meters_to_acres(f1.area()), f2.objectid, zoning.square_meters_to_acres(f2.area()), f1.zoning, f2.zoning))
+            area_delta = 10.0 # square meters
+            new_feature = zoning.ZoningFeature("%s->%s" % (f1.objectid, f2.objectid), f2.zoning, isect, f2.old_zoning + f1.zoning)
+            if new_feature.area() < area_delta:
+                # The intersection is less than area_delta square meters, so it's probably just floating point error.
+                # Skip it!
+                continue
+            elif f2.area() - area_delta < new_feature.area():
+                # the intersection is almost covering the entire preexisting area, so just assume that they're identical.
+                new_feature = zoning.ZoningFeature("%s->%s" % (f1.objectid, f2.objectid), f2.zoning, f2.geometry, f2.old_zoning + f1.zoning)
+            else:
+                # add a new feature containing the portion of f2 that does not intersect with f1
+                new_geom = f2.geometry.difference(new_feature.geometry)
+                if not new_geom.is_empty:
+                    map2.append(zoning.ZoningFeature("%s.2" % f2.objectid, f2.zoning, new_geom, f2.old_zoning))
+            map2[i] = new_feature
+            logger("\r%s\rPlot %s (%.02f acres) -> %s (%.02f acres) went from %s to %s\n" % (' ' * 40, f1.objectid, zoning.square_meters_to_acres(f1.area()), f2.objectid, zoning.square_meters_to_acres(new_feature.area()), f1.zoning, f2.zoning))
             last_percent = -1
-            map2.append(zoning.ZoningFeature("%s.2" % f2.objectid, f2.zoning, f2.geometry.difference(map2[i].geometry), f2.old_zoning))
             # Delete the portion of overlap in f1 to hopefully speed up further comparisons:
+            # (This is making the assumption that the zoning regions in map2 are non-overlapping)
             map1[n] = zoning.ZoningFeature(f1.objectid, f1.zoning, f1.geometry.difference(isect))
             if map1[n].geometry.is_empty:
                 break

@@ -18,7 +18,9 @@ class ZoningFeature(object):
         self._area = None
     def area(self):
         """Calculates the area of this zoning feature in square meters"""
-        if self._area is None:
+        if self.geometry.is_empty:
+            return 0.0
+        elif self._area is None:
             geom_aea = shapely.ops.transform(
                 functools.partial(
                     pyproj.transform,

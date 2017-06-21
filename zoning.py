@@ -48,6 +48,18 @@ class ZoningFeature(object):
             "geometry":mapping(self.geometry)
             }
 
+def parse_feature(geojson):
+    properties = geojson["properties"]
+    if "LONG_CODE" in properties:
+        zoning = properties["LONG_CODE"]
+    else:
+        zoning = (properties["CODE"], properties["CATEGORY"])
+    if "OLD_ZONING" in properties:
+        old_zoning = properties["OLD_ZONING"]
+    else:
+        old_zoning = None
+    return ZoningFeature(properties["OBJECTID"], [zoning], shape(geojson["geometry"]), old_zoning)
+
 class ZoningMap(object):
     def __init__(self, stream):
         self.json = json.load(stream)
@@ -60,28 +72,7 @@ class ZoningMap(object):
         if key < 0 or key >= len(self):
             return None
         while key >= len(self._features):
-            feature = self.json["features"][key]
-            #poly = None
-            #try:
-            #    poly = [Polygon(coords) for coords in feature["geometry"]["coordinates"]]
-            #except ValueError as e:
-            #    print feature["geometry"]["coordinates"]
-            #    print e
-            #    exit(3)
-            #if len(poly) == 1:
-            #    poly = poly[0]
-            #else:
-            #    poly = MultiPolygon(*poly)
-            properties = feature["properties"]
-            if "LONG_CODE" in properties:
-                zoning = properties["LONG_CODE"]
-            else:
-                zoning = (properties["CODE"], properties["CATEGORY"])
-            if "OLD_ZONING" in properties:
-                old_zoning = properties["OLD_ZONING"]
-            else:
-                old_zoning = None
-            self._features.append(ZoningFeature(properties["OBJECTID"], [zoning], shape(feature["geometry"]), old_zoning))
+            self._features.append(parse_feature(self.json["features"][key]))
         return self._features[key]
     def __iter__(self):
         for i in range(len(self)):

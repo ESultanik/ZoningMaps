@@ -91,6 +91,7 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
                 map2[i] = state[0]
                 if state[1] is not None:
                     map2.append(state[1])
+                    estimator.end_value = len(map1) * len(map2)
                 map1[n] = state[2]
                 if map1[n].geometry.is_empty:
                     break
@@ -124,6 +125,7 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
                 new_geom = f2.geometry.difference(new_feature.geometry)
                 if not new_geom.is_empty:
                     map2.append(zoning.ZoningFeature("%s.2" % f2.objectid, f2.zoning, new_geom, f2.old_zoning))
+                    estimator.end_value = len(map1) * len(map2)
                     new_state[1] = map2[-1]
             map2[i] = new_feature
             new_state[0] = map2[i]

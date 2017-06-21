@@ -4,9 +4,23 @@ import zoning
 
 def load_save_file(stream):
     save = {}
+    map1_len = None
+    map2_len = None
     for line in stream:
         data = json.loads(line)
-        if data[2] is None:
+        if map1_len is None:
+            map1_len = data["MAP1_LEN"]
+            map2_len = data["MAP2_LEN"]
+            continue;
+        elif data[0] is None:
+            fromn, fromi = data[1]
+            ton, toi = data[2]
+            for n in range(fromn, ton + 1):
+                for i in range(fromi, map2_len):
+                    if n == ton and i == toi:
+                        break
+                    save[(n, i)] = None
+        elif data[2] is None:
             save[(data[0], data[1])] = None
         else:
             features = []
@@ -24,11 +38,21 @@ class StateSaver(object):
         self.flush_interval = flush_interval
         self.current_state_flush = 0
         self.last_state_flush = 0
+        self.nulls_start = None
+    def record_map_sizes(self, map1_len, map2_len):
+        if self.stream is not None:
+            self.stream.write("%s\n" % json.dumps({"MAP1_LEN" : map1_len, "MAP2_LEN" : map2_len}))
     def record(self, n, i, *args):
         if self.stream is None:
             return
-        line = ""
+        self.current_state_flush += 1
+        flush = (self.current_state_flush - self.last_state_flush) >= self.flush_interval
         if args:
+            if self.nulls_start:
+                line = "[null,[%d,%d],[%d,%d]]" % (self.nulls_start[0], self.nulls_start[1], n, i)
+                self.stream.write("%s\n" % line)
+                flush = True
+                self.nulls_start = None
             a = []
             for arg in args:
                 if arg is None:
@@ -36,11 +60,12 @@ class StateSaver(object):
                 else:
                     a.append(arg.to_geo())
             line = json.dumps([n, i] + a)
+            self.stream.write("%s\n" % line)
         else:
-            line = json.dumps([n, i, None])
-        self.stream.write("%s\n" % line)
-        self.current_state_flush += 1
-        if (self.current_state_flush - self.last_state_flush) >= self.flush_interval:
+            if self.nulls_start is None:
+                self.nulls_start = [n, i]
+            #line = json.dumps([n, i, None])
+        if flush:
             self.last_state_flush = self.current_state_flush
             self.stream.flush()
 
@@ -50,9 +75,11 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
     map1 = zoning.ModifiableMap(map1)
     map2 = zoning.ModifiableMap(map2)
     estimator = progress.TimeEstimator(logger, 0, len(map1) * len(map2), precision = 2, interval = 3.0)
+    saver = StateSaver(save_state_to)
     if previous_save is not None:
         logger("\r%s\rFast-forwarding using saved state..." % (' ' * 40))
-    saver = StateSaver(save_state_to)
+    else:
+        saver.record_map_sizes(len(map1), len(map2))
     for n, f1 in enumerate(map1):
         if f1.geometry.is_empty:
             continue

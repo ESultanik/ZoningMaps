@@ -27,6 +27,7 @@ class StateSaver(object):
     def record(self, n, i, *args):
         if self.stream is None:
             return
+        line = ""
         if args:
             a = []
             for arg in args:
@@ -34,10 +35,10 @@ class StateSaver(object):
                     a.append(None)
                 else:
                     a.append(arg.to_geo())
-            self.stream.write(json.dumps([n, i] + a))
+            line = json.dumps([n, i] + a)
         else:
-            self.stream.write(json.dumps([n, i, None]))
-        self.stream.write('\n')
+            line = json.dumps([n, i, None])
+        self.stream.write("%s\n" % line)
         self.current_state_flush += 1
         if (self.current_state_flush - self.last_state_flush) >= self.flush_interval:
             self.last_state_flush = self.current_state_flush

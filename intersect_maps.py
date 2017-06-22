@@ -2,11 +2,23 @@ import json
 import progress
 import zoning
 
-def load_save_file(stream):
+def calculate_stream_size(stream):
+    old_pos = stream.tell()
+    stream.seek(0, 2)
+    size = f.tell()
+    stream.seek(old_pos, 0)
+    return size
+
+def load_save_file(stream, logger = None):
+    if hasattr(stream, "name"):
+        estimator = progress.TimeEstimator(logger, 0, calculate_stream_size(stream))
+    else:
+        estimator = None
     save = {}
     map1_len = None
     map2_len = None
     for line in stream:
+        estimator.increment(len(line))
         data = json.loads(line)
         if map1_len is None:
             map1_len = data["MAP1_LEN"]
@@ -154,10 +166,10 @@ if __name__ == "__main__":
             save_state_to = None
             if len(sys.argv) >= 4:
                 if os.path.exists(sys.argv[3]):
-                    logger('Loading save state...')
+                    logger('Loading save state...\n')
                     with open(sys.argv[3], 'r') as f:
                         previous_save = load_save_file(f)
-                    logger('\n')
+                    logger('Loaded.\n')
                 save_state_to = open(sys.argv[3], 'a')
             try:
                 intersected = intersect(zoning.ZoningMap(f1), zoning.ZoningMap(f2), logger = logger, previous_save = previous_save, save_state_to = save_state_to)

@@ -36,6 +36,7 @@ def load_save_file(stream, logger = None):
     map1_len = None
     map2_len = None
     null_features = None
+    last_index = None
     for line in stream:
         estimator.increment(len(line))
         data = json.loads(line)
@@ -47,6 +48,7 @@ def load_save_file(stream, logger = None):
         elif data[0] is None:
             fromn, fromi = data[1]
             ton, toi = data[2]
+            last_index = data[2]
             null_features.add_null_region(fromn, fromi, ton, toi)
             #for n in range(fromn, ton + 1):
             #    for i in range(fromi, map2_len):
@@ -55,6 +57,7 @@ def load_save_file(stream, logger = None):
             #        save[(n, i)] = None
         elif data[2] is None:
             save[(data[0], data[1])] = None
+            last_index = data[:2]
         else:
             features = []
             for f in data[2:]:
@@ -63,6 +66,8 @@ def load_save_file(stream, logger = None):
                 else:
                     features.append(zoning.parse_feature(f))
             save[(data[0], data[1])] = features
+            last_index = data[:2]
+        save["LAST_INDEX"] = last_index
     return save
 
 class StateSaver(object):

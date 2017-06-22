@@ -36,6 +36,7 @@ def load_save_file(stream, logger = None):
     map1_len = None
     map2_len = None
     null_features = None
+    last_index = None
     for line in stream:
         if estimator is not None:
             estimator.increment(len(line))
@@ -48,6 +49,7 @@ def load_save_file(stream, logger = None):
         elif data[0] is None:
             fromn, fromi = data[1]
             ton, toi = data[2]
+            last_index = data[2]
             null_features.add_null_region(fromn, fromi, ton, toi)
             #for n in range(fromn, ton + 1):
             #    for i in range(fromi, map2_len):
@@ -56,6 +58,7 @@ def load_save_file(stream, logger = None):
             #        save[(n, i)] = None
         elif data[2] is None:
             save[(data[0], data[1])] = None
+            last_index = data[:2]
         else:
             features = []
             for f in data[2:]:
@@ -64,6 +67,8 @@ def load_save_file(stream, logger = None):
                 else:
                     features.append(zoning.parse_feature(f))
             save[(data[0], data[1])] = features
+            last_index = data[:2]
+        save["LAST_INDEX"] = last_index
     return save
 
 class StateSaver(object):
@@ -103,13 +108,14 @@ class StateSaver(object):
             self.last_state_flush = self.current_state_flush
             self.stream.flush()
 
-def intersect(map1, map2, logger = None, previous_save = None, save_state_to = None):
+def intersect(map1, map2, logger = None, previous_save = None, save_state_to = None, incremental_save_path = None, incremental_save_time = 600):
     if logger is None:
         logger = lambda m : None
     map1 = zoning.ModifiableMap(map1)
     map2 = zoning.ModifiableMap(map2)
     estimator = progress.TimeEstimator(logger, 0, len(map1) * len(map2), precision = 2, interval = 3.0)
     saver = StateSaver(save_state_to)
+    last_incremental_save = 0
     if previous_save is not None:
         logger("\r%s\rFast-forwarding using saved state..." % (' ' * 40))
     else:
@@ -173,6 +179,12 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
             map1[n] = zoning.ZoningFeature(f1.objectid, f1.zoning, f1.geometry.difference(isect))
             new_state[2] = map1[n]
             saver.record(n, i, *new_state)
+            if incremental_save_path and estimator.get_time() - last_incremental_save >= incremental_save_time:
+                # do an incremental save once every incremental_save_time seconds
+                logger("\r%s\rDoing an incremental save to %s..." % (' ' * 40, incremental_save_path))
+                last_incremental_save = estimator.get_time()
+                with open(incremental_save_path, 'w') as f:
+                    map2.save(f)
             if map1[n].geometry.is_empty:
                 break
     logger('\n')
@@ -197,11 +209,12 @@ if __name__ == "__main__":
                     logger("\r%s\rLoaded.\n" % (' ' * 40))
                 save_state_to = open(sys.argv[3], 'a')
             try:
-                intersected = intersect(zoning.ZoningMap(f1), zoning.ZoningMap(f2), logger = logger, previous_save = previous_save, save_state_to = save_state_to)
+                intersected = intersect(zoning.ZoningMap(f1), zoning.ZoningMap(f2), logger = logger, previous_save = previous_save, save_state_to = save_state_to, incremental_save_path = "%s.incremental" % sys.argv[3])
             finally:
                 if save_state_to is not None:
                     save_state_to.close()
             intersected.save(sys.stdout)
+            os.unlink("%s.incremental" % sys.argv[3])
             ## Sanity check:
             #import StringIO
             #output = StringIO.StringIO()

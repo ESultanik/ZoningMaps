@@ -1,25 +1,58 @@
+import bisect
 import json
 import progress
 import zoning
 
-def load_save_file(stream):
+def calculate_stream_size(stream):
+    old_pos = stream.tell()
+    stream.seek(0, 2)
+    size = f.tell()
+    stream.seek(old_pos, 0)
+    return size
+
+class NullFeatures(object):
+    def __init__(self, map1_len, map2_len):
+        self._mapping = map1_len * map2_len
+        self._max_mapping = self._mapping * map1_len + 1
+        self.regions = []
+    def add_null_region(self, fromn, fromi, ton, toi):
+        fromid = fromn * self._mapping + fromi
+        toid = ton * self._mapping + toi
+        bisect.insort_right(self.regions, (fromid, toid))
+    def is_null(self, n, i):
+        fid = n * self._mapping + i
+        j = bisect.bisect_right(self.regions, (fid, self._max_mapping))
+        if j == 0:
+            return False
+        else:
+            return self.regions[j - 1][1] >= fid
+
+def load_save_file(stream, logger = None):
+    if hasattr(stream, "name"):
+        estimator = progress.TimeEstimator(logger, 0, calculate_stream_size(stream), precision = 1)
+    else:
+        estimator = None
     save = {}
     map1_len = None
     map2_len = None
+    null_features = None
     for line in stream:
+        estimator.increment(len(line))
         data = json.loads(line)
         if map1_len is None:
             map1_len = data["MAP1_LEN"]
             map2_len = data["MAP2_LEN"]
+            save[None] = null_features = NullFeatures(map1_len, map2_len)
             continue;
         elif data[0] is None:
             fromn, fromi = data[1]
             ton, toi = data[2]
-            for n in range(fromn, ton + 1):
-                for i in range(fromi, map2_len):
-                    if n == ton and i == toi:
-                        break
-                    save[(n, i)] = None
+            null_features.add_null_region(fromn, fromi, ton, toi)
+            #for n in range(fromn, ton + 1):
+            #    for i in range(fromi, map2_len):
+            #        if n == ton and i == toi:
+            #            break
+            #        save[(n, i)] = None
         elif data[2] is None:
             save[(data[0], data[1])] = None
         else:
@@ -85,18 +118,21 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
         if f1.geometry.is_empty:
             continue
         for i, f2 in enumerate(map2):
-            if previous_save is not None and (n, i) in previous_save:
-                state = previous_save[(n,i)]
-                if state is None:
+            if previous_save is not None:
+                if (n, i) in previous_save:
+                    state = previous_save[(n,i)]
+                    if state is None:
+                        continue
+                    map2[i] = state[0]
+                    if state[1] is not None:
+                        map2.append(state[1])
+                        estimator.end_value = len(map1) * len(map2)
+                    map1[n] = state[2]
+                    if map1[n].geometry.is_empty:
+                        break
                     continue
-                map2[i] = state[0]
-                if state[1] is not None:
-                    map2.append(state[1])
-                    estimator.end_value = len(map1) * len(map2)
-                map1[n] = state[2]
-                if map1[n].geometry.is_empty:
-                    break
-                continue
+                elif previous_save[None].is_null(n, i):
+                    continue
             estimator.update(n * len(map2) + i)
             if f2.geometry.is_empty:
                 saver.record(n, i)
@@ -161,10 +197,10 @@ if __name__ == "__main__":
             save_state_to = None
             if len(sys.argv) >= 4:
                 if os.path.exists(sys.argv[3]):
-                    logger('Loading save state...')
+                    logger('Loading save state...\n')
                     with open(sys.argv[3], 'r') as f:
                         previous_save = load_save_file(f)
-                    logger('\n')
+                    logger("\r%s\rLoaded.\n" % (' ' * 40))
                 save_state_to = open(sys.argv[3], 'a')
             try:
                 intersected = intersect(zoning.ZoningMap(f1), zoning.ZoningMap(f2), logger = logger, previous_save = previous_save, save_state_to = save_state_to, incremental_save_path = "%s.incremental" % sys.argv[3])

@@ -66,4 +66,5 @@ class TimeEstimator(object):
                     time_remaining = "%.2f seconds" % seconds_remaining
                 else:
                     time_remaining += "%02d" % int(seconds_remaining)
-            self.logger("\r%s\r%.2f%% %s remaining" % (' ' * 40, percent, time_remaining))
+            precision_format = "\r%%s\r%%.%df%%%% %%s remaining" % self.precision
+            self.logger(precision_format % (' ' * 40, percent, time_remaining))

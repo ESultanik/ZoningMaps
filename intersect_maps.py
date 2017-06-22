@@ -117,14 +117,16 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
     saver = StateSaver(save_state_to)
     last_incremental_save = 0
     if previous_save is not None:
-        logger("\r%s\rFast-forwarding using saved state..." % (' ' * 40))
+        logger("\r%s\rFast-forwarding using saved state...\n" % (' ' * 40))
+        last_n, last_i = previous_save["LAST_INDEX"]
+        estimator.end_value = (last_n - 1) * len(map2) + last_i
     else:
         saver.record_map_sizes(len(map1), len(map2))
     for n, f1 in enumerate(map1):
         if f1.geometry.is_empty:
             continue
         for i, f2 in enumerate(map2):
-            if previous_save is not None:
+            if previous_save is not None and n <= last_n:
                 if (n, i) in previous_save:
                     state = previous_save[(n,i)]
                     if state is None:
@@ -132,13 +134,21 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
                     map2[i] = state[0]
                     if state[1] is not None:
                         map2.append(state[1])
-                        estimator.end_value = len(map1) * len(map2)
                     map1[n] = state[2]
+                    estimator.increment()
                     if map1[n].geometry.is_empty:
+                        estimator.increment(len(map2) - i)
                         break
                     continue
                 elif previous_save[None].is_null(n, i):
+                    estimator.increment()
                     continue
+                elif n < last_n or (n == last_n and i <= last_i):
+                    estimator.increment()
+                    continue
+                elif n == last_n and i == last_i:
+                    estimator.end_value = len(map1) * len(map2)
+                    logger("\r%s\rDone.\n" % (' ' * 40))
             estimator.update(n * len(map2) + i)
             if f2.geometry.is_empty:
                 saver.record(n, i)

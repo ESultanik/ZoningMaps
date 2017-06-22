@@ -69,13 +69,14 @@ class StateSaver(object):
             self.last_state_flush = self.current_state_flush
             self.stream.flush()
 
-def intersect(map1, map2, logger = None, previous_save = None, save_state_to = None):
+def intersect(map1, map2, logger = None, previous_save = None, save_state_to = None, incremental_save_path = None, incremental_save_time = 600):
     if logger is None:
         logger = lambda m : None
     map1 = zoning.ModifiableMap(map1)
     map2 = zoning.ModifiableMap(map2)
     estimator = progress.TimeEstimator(logger, 0, len(map1) * len(map2), precision = 2, interval = 3.0)
     saver = StateSaver(save_state_to)
+    last_incremental_save = 0
     if previous_save is not None:
         logger("\r%s\rFast-forwarding using saved state..." % (' ' * 40))
     else:
@@ -136,6 +137,12 @@ def intersect(map1, map2, logger = None, previous_save = None, save_state_to = N
             map1[n] = zoning.ZoningFeature(f1.objectid, f1.zoning, f1.geometry.difference(isect))
             new_state[2] = map1[n]
             saver.record(n, i, *new_state)
+            if incremental_save_path and estimator.get_time() - last_incremental_save >= incremental_save_time:
+                # do an incremental save once every incremental_save_time seconds
+                logger("\r%s\rDoing an incremental save to %s..." % (' ' * 40, incremental_save_path))
+                last_incremental_save = estimator.get_time()
+                with open(incremental_save_path, 'w') as f:
+                    map2.save(f)
             if map1[n].geometry.is_empty:
                 break
     logger('\n')
@@ -160,11 +167,12 @@ if __name__ == "__main__":
                     logger('\n')
                 save_state_to = open(sys.argv[3], 'a')
             try:
-                intersected = intersect(zoning.ZoningMap(f1), zoning.ZoningMap(f2), logger = logger, previous_save = previous_save, save_state_to = save_state_to)
+                intersected = intersect(zoning.ZoningMap(f1), zoning.ZoningMap(f2), logger = logger, previous_save = previous_save, save_state_to = save_state_to, incremental_save_path = "%s.incremental" % sys.argv[3])
             finally:
                 if save_state_to is not None:
                     save_state_to.close()
             intersected.save(sys.stdout)
+            os.unlink("%s.incremental" % sys.argv[3])
             ## Sanity check:
             #import StringIO
             #output = StringIO.StringIO()

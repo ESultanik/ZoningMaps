@@ -26,6 +26,8 @@ class TimeEstimator(object):
         self.last_log_time = 0
         self.last_percent = -1
         self.start_time = time.time()
+    def get_time(self):
+        return time.time()
     def increment(self, increment = 1):
         self.value += increment
         self.refresh()

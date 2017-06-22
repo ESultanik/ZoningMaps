@@ -37,7 +37,8 @@ def load_save_file(stream, logger = None):
     map2_len = None
     null_features = None
     for line in stream:
-        estimator.increment(len(line))
+        if estimator is not None:
+            estimator.increment(len(line))
         data = json.loads(line)
         if map1_len is None:
             map1_len = data["MAP1_LEN"]

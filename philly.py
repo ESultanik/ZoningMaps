@@ -65,14 +65,15 @@ class GrossFloorAreaHouseholdEstimator(object):
     def __call__(self, lot_area):
         return int(math.ceil((float(lot_area) * float(self.gross_floor_area) / 100.0) / self.square_feet_per_resident / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
-PRE_2012_ZONING = {}
+ZONING = {}
 
 def _add_district(name, uses, btype, household_estimator):
-    PRE_2012_ZONING[name] = ZoningDistrict(name,
-                                           ResidentialPermittedUses(**dict([(use, True) for use in uses])),
-                                           BuildingType(**dict([(t, True) for t in btype])),
-                                           household_estimator)
-    
+    ZONING[name] = ZoningDistrict(name,
+                                  ResidentialPermittedUses(**dict([(use, True) for use in uses])),
+                                  BuildingType(**dict([(t, True) for t in btype])),
+                                  household_estimator)
+
+# PRE-2012:
 _add_district("R1",  ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1))
 _add_district("R1A", ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1))
 _add_district("R2",  ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1))
@@ -108,3 +109,29 @@ _add_district("RC2", ['single_family', 'residential_related', 'non_residential',
 _add_district("RC3", ['single_family', 'residential_related', 'non_residential', 'hotel'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(350))
 _add_district("RC4", ['single_family', 'residential_related', 'non_residential', 'hotel'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(500))
 _add_district("RC6", ['single_family', 'residential_related'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150))
+
+# CURRENT:
+_add_district("RSD-1", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
+_add_district("RSD-2", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
+_add_district("RSD-3", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
+_add_district("RSA-1", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1))
+_add_district("RSA-2", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1))
+_add_district("RSA-3", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1))
+_add_district("RSA-4", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1))
+_add_district("RSA-5", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1))
+_add_district("RTA-1", ['single_family', 'duplex'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(2))
+_add_district("RM-1",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], MaximumFloorsHouseholdEstimator(0.0, 3))
+_add_district("RM-2",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(70))
+_add_district("RM-3",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150))
+_add_district("RM-4",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(350))
+_add_district("RMX-1", ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150))
+_add_district("RMX-2", ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(250))
+_add_district("RMX-3", ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(600))
+_add_district("CMX-1", ['single_family'], ['attached'], ConstantHouseholdEstimator(1))
+_add_district("CMX-2", ['single_family'], ['attached'], MaximumFloorsHouseholdEstimator(0.25, 4))
+_add_district("CMX-2.5", ['single_family'], ['attached'], MaximumFloorsHouseholdEstimator(0.25, 5))
+_add_district("CMX-3", ['single_family'], ['attached'], GrossFloorAreaHouseholdEstimator(800 * 0.75))
+_add_district("CMX-4", ['single_family'], ['attached'], GrossFloorAreaHouseholdEstimator(1100))
+_add_district("CMX-5", ['single_family'], ['attached'], GrossFloorAreaHouseholdEstimator(2000))
+_add_district("IRMX", ['single_family'], ['attached'], GrossFloorAreaHouseholdEstimator(500))
+_add_district("ICMX", ['single_family'], ['attached'], GrossFloorAreaHouseholdEstimator(500))

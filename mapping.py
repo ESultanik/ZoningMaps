@@ -55,11 +55,15 @@ def map_to_kml(zoning_map):
             zonings = []
             for z in feature.old_zoning:
                 zonings.append(' '.join(z))
-                if z[0] in philly.PRE_2012_ZONING:
-                    occupancies.append(philly.PRE_2012_ZONING[z[0]].resident_bounds(zoning.square_meters_to_square_feet(feature.area()))[1])
+                if z[0] in philly.ZONING:
+                    lot_sqft = zoning.square_meters_to_square_feet(feature.area())
+                    occupancies.append(philly.ZONING[z[0]].resident_bounds(lot_sqft)[1])
             old_zoning = " and ".join(zonings)
             if occupancies:
-                old_zoning = "%s maximum occupancy: %s" % (old_zoning, max(occupancies))
+                max_occupancy = max(occupancies)
+                old_zoning = "%s maximum occupancy: %s" % (old_zoning, max_occupancy)
+                if fzoning in philly.ZONING:
+                    old_zoning = "%s (%.2f%%)" % (old_zoning, max_occupancy / philly.ZONING[fzoning].resident_bounds(lot_sqft)[1] * 100.0)
         else:
             old_zoning = "N/A"
         for poly in polygons:

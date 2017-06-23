@@ -7,6 +7,9 @@ import shapely.ops
 def square_meters_to_acres(m2):
     return m2 * 0.000247105
 
+def square_meters_to_square_feet(m2):
+    return m2 * 10.7639
+
 class ZoningFeature(object):
     def __init__(self, objectid, zoning, geometry, old_zoning = None):
         self.objectid = objectid

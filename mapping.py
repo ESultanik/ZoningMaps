@@ -1,7 +1,8 @@
 from fastkml import kml
 import fastkml
-
 import shapely
+
+import philly
 import zoning
 
 def map_to_kml(zoning_map):
@@ -45,18 +46,26 @@ def map_to_kml(zoning_map):
         else:
             allparts = [p.buffer(0) for p in feature.geometry]
             polygons = [shapely.ops.cascaded_union(allparts)]
-        zoning = feature.zoning
-        while type(zoning) == list and len(zoning) == 1:
-            zoning = zoning[0]
-        zoning = str(zoning)
+        fzoning = feature.zoning
+        while type(fzoning) == list and len(fzoning) == 1:
+            fzoning = fzoning[0]
+        fzoning = str(fzoning)
         if feature.old_zoning:
-            old_zoning = " and ".join(map(lambda z : ' '.join(z), feature.old_zoning))
+            occupancies = []
+            zonings = []
+            for z in feature.old_zoning:
+                zonings.append(' '.join(z))
+                if z[0] in philly.PRE_2012_ZONING:
+                    occupancies.append(philly.PRE_2012_ZONING[z[0]].resident_bounds(zoning.square_meters_to_square_feet(feature.area()))[1])
+            old_zoning = " and ".join(zonings)
+            if occupancies:
+                old_zoning = "%s maximum occupancy: %s" % (old_zoning, max(occupancies))
         else:
             old_zoning = "N/A"
         for poly in polygons:
-            p = kml.Placemark(ns, str(feature.objectid), zoning, "Pre-2012 Zoning: %s" % old_zoning)
-            if zoning in zoning_styles:
-                p.append_style(zoning_styles[zoning])
+            p = kml.Placemark(ns, str(feature.objectid), fzoning, "Pre-2012 Zoning: %s" % old_zoning)
+            if fzoning in zoning_styles:
+                p.append_style(zoning_styles[fzoning])
             p.geometry = poly
             f.append(p)
     return k

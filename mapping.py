@@ -60,13 +60,9 @@ def map_to_kml(zoning_map):
             p.geometry = poly
             f.append(p)
     return k
-#def make_zoning_kml():
 
-
-    
 if __name__ == "__main__":
     import sys
 
-    #make_zoning_kml(
     with open(sys.argv[1], 'r') as f:
         print map_to_kml(zoning.ZoningMap(f)).to_string(prettyprint=True)

@@ -1,3 +1,6 @@
+density.kml : intersected.json
+	python density.py $< > $@
+
 intersected.kml : intersected.json
 	python mapping.py $< > $@
 

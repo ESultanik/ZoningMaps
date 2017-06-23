@@ -56,14 +56,14 @@ class MaximumFloorsHouseholdEstimator(object):
         self.maximum_floors = maximum_floors
         self.square_feet_per_resident = square_feet_per_resident
     def __call__(self, lot_area):
-        return int(math.ceil(lot_area * (1.0 - self.minimum_open_area_percentage) * self.maximum_floors / self.square_feet_per_resident / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+        return int(math.ceil((lot_area * (1.0 - self.minimum_open_area_percentage) * self.maximum_floors / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
 class GrossFloorAreaHouseholdEstimator(object):
     def __init__(self, gross_floor_area_percent, square_feet_per_resident = 450.0):
         self.gross_floor_area = gross_floor_area_percent
         self.square_feet_per_resident = 450.0
     def __call__(self, lot_area):
-        return int(math.ceil((float(lot_area) * float(self.gross_floor_area) / 100.0) / self.square_feet_per_resident / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+        return int(math.ceil(((float(lot_area) * float(self.gross_floor_area) / 100.0) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
 ZONING = {}
 
@@ -120,7 +120,7 @@ _add_district("RSA-3", ['single_family'], ['detached', 'semi_detached'], Constan
 _add_district("RSA-4", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1))
 _add_district("RSA-5", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1))
 _add_district("RTA-1", ['single_family', 'duplex'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(2))
-_add_district("RM-1",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], MaximumFloorsHouseholdEstimator(0.0, 3))
+_add_district("RM-1",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], MaximumFloorsHouseholdEstimator(.3, 3))
 _add_district("RM-2",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(70))
 _add_district("RM-3",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150))
 _add_district("RM-4",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(350))

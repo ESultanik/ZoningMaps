@@ -7,7 +7,7 @@ import zoning
 def map_to_kml(zoning_map):
     k = kml.KML()
     ns = '{http://www.opengis.net/kml/2.2}'
-    d = kml.Document(ns, 'docid', 'doc name', 'doc description')
+    d = kml.Document(ns, 'PHL Zoning Changes', 'Philadelphia Zoning Changes 2012 to 2017', 'A map of current (2017) zoning plots along with the previous (Pre-2012) classifications.')
     k.append(d)
     f = kml.Folder(ns, 'PHL Zoning', 'Philadelphia Zoning', 'Changes to Philadelphia zoning from 2012 to 2017')
     d.append(f)

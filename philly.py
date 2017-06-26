@@ -50,9 +50,12 @@ class ZoningDistrict(object):
         return ZONING[self.new_class]
 
 class ConstantHouseholdEstimator(object):
-    def __init__(self, maximum_households):
+    def __init__(self, maximum_households, min_lot_area = None):
         self.maximum_households = maximum_households
+        self.min_lot_area = min_lot_area
     def __call__(self, lot_area):
+        if self.min_lot_area:
+            return max(int(lot_area / float(self.min_lot_area)), 1.0) * self.maximum_households
         return self.maximum_households
     
 class MaximumFloorsHouseholdEstimator(object):
@@ -137,15 +140,15 @@ for name, equiv in (
 
 
 # CURRENT:
-_add_district("RSD-1", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
-_add_district("RSD-2", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
-_add_district("RSD-3", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
-_add_district("RSA-1", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1))
-_add_district("RSA-2", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1))
-_add_district("RSA-3", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1))
-_add_district("RSA-4", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1))
-_add_district("RSA-5", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1))
-_add_district("RTA-1", ['single_family', 'duplex'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(2))
+_add_district("RSD-1", ['single_family'], ['detached'], ConstantHouseholdEstimator(1, min_lot_area = 10000))
+_add_district("RSD-2", ['single_family'], ['detached'], ConstantHouseholdEstimator(1, min_lot_area = 7800))
+_add_district("RSD-3", ['single_family'], ['detached'], ConstantHouseholdEstimator(1, min_lot_area = 5000))
+_add_district("RSA-1", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1, min_lot_area = 5000))
+_add_district("RSA-2", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1, min_lot_area = 3150))
+_add_district("RSA-3", ['single_family'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1, min_lot_area = 2250))
+_add_district("RSA-4", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1, min_lot_area = 1620))
+_add_district("RSA-5", ['single_family'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1, min_lot_area = 1440))
+_add_district("RTA-1", ['single_family', 'duplex'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(2, min_lot_area = 2250))
 _add_district("RM-1",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], MaximumFloorsHouseholdEstimator(.3, 3))
 _add_district("RM-2",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(70))
 _add_district("RM-3",  ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150))
@@ -153,7 +156,8 @@ _add_district("RM-4",  ['single_family', 'duplex', 'multi_family'], ['detached',
 _add_district("RMX-1", ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150))
 _add_district("RMX-2", ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(250))
 _add_district("RMX-3", ['single_family', 'duplex', 'multi_family'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(600))
-_add_district("CMX-1", ['single_family'], ['attached'], ConstantHouseholdEstimator(1))
+_add_district("CMX-1", ['single_family'], ['attached'], ConstantHouseholdEstimator(1, min_lot_area = 1440)) # the min_lot_area for CMX-1 is really relative to the surrounding districts,
+                                                                                                            # but this is a lower bound
 _add_district("CMX-2", ['single_family'], ['attached'], MaximumFloorsHouseholdEstimator(0.25, 4))
 _add_district("CMX-2.5", ['single_family'], ['attached'], MaximumFloorsHouseholdEstimator(0.25, 5))
 _add_district("CMX-3", ['single_family'], ['attached'], GrossFloorAreaHouseholdEstimator(800 * 0.75))

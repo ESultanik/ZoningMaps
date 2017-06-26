@@ -32,11 +32,14 @@ class ZoningRequirements(object):
         self.residents_upper_bound = maximum_households * AVERAGE_PEOPLE_PER_HOUSEHOLD
         
 class ZoningDistrict(object):
-    def __init__(self, name, uses, building_type, household_estimator):
+    def __init__(self, name, uses, building_type, sqft_estimator, household_estimator):
         self.name = name
         self.uses = uses
         self.building_type = building_type
+        self.sqft_estimator = sqft_estimator
         self.household_estimator = household_estimator
+    def estimate_maximum_sqft(self, lot_area):
+        return self.sqft_estimator(lot_area)
     def estimate_maximum_households(self, lot_area):
         return self.household_estimator(lot_area)
     def resident_bounds(self, lot_area):
@@ -49,25 +52,37 @@ class ConstantHouseholdEstimator(object):
         self.maximum_households = maximum_households
     def __call__(self, lot_area):
         return self.maximum_households
-    
-class MaximumFloorsHouseholdEstimator(object):
-    def __init__(self, minimum_open_area_percentage, maximum_floors, square_feet_per_resident = 450.0):
-        self.minimum_open_area_percentage = minimum_open_area_percentage
-        self.maximum_floors = maximum_floors
+
+class GrossFloorAreaEstimator(object):
+    def __init__(self, gross_floor_area_percent):
+        self.gross_floor_area = gross_floor_area_percent
+    def __call__(self, lot_area):
+        return float(lot_area) * float(self.gross_floor_area) / 100.0
+
+class GrossFloorAreaHouseholdEstimator(GrossFloorAreaEstimator):
+    def __init__(self, gross_floor_area_percent, square_feet_per_resident = 450.0):
+        super(GrossFloorAreaHouseholdEstimator, self).__init__(gross_floor_area_percent)
         self.square_feet_per_resident = square_feet_per_resident
     def __call__(self, lot_area):
-        return int(math.ceil((lot_area * (1.0 - self.minimum_open_area_percentage) * self.maximum_floors / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+        return int(math.ceil((super(GrossFloorAreaHouseholdEstimator, self)(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
-class GrossFloorAreaHouseholdEstimator(object):
-    def __init__(self, gross_floor_area_percent, square_feet_per_resident = 450.0):
-        self.gross_floor_area = gross_floor_area_percent
-        self.square_feet_per_resident = 450.0
+class MaximumFloorsEstimator(object):
+    def __init__(self, minimum_open_area_percentage, maximum_floors):
+        self.minimum_open_area_percentage = minimum_open_area_percentage
+        self.maximum_floors = maximum_floors
     def __call__(self, lot_area):
-        return int(math.ceil(((float(lot_area) * float(self.gross_floor_area) / 100.0) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+        return lot_area * (1.0 - self.minimum_open_area_percentage) * self.maximum_floors
 
+class MaximumFloorsHouseholdEstimator(MaximumFloorsEstimator):
+    def __init__(self, minimum_open_area_percentage, maximum_floors, square_feet_per_resident = 450.0):
+        super(MaximumFloorsEstimator, self).__init__(minimum_open_area_percentage, maximum_floors)
+        self.square_feet_per_resident = square_feet_per_resident
+    def __call__(self, lot_area):
+        return int(math.ceil((super(MaximumFloorsHouseholdEstimator, self)(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+    
 ZONING = {}
 
-def _add_district(name, uses, btype, household_estimator):
+def _add_district(name, uses, btype, sqft_estimator, household_estimator):
     ZONING[name] = ZoningDistrict(name,
                                   ResidentialPermittedUses(**dict([(use, True) for use in uses])),
                                   BuildingType(**dict([(t, True) for t in btype])),

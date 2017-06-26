@@ -1,5 +1,10 @@
 # Philadelphia-specific zoning information for residential properties
 
+# Old (pre-2012) Zoning:
+#    http://www.amlegal.com/codes/client/philadelphia-historic-zoning-code-title-14_pa/
+# New (post-2012) Zoning:
+#    http://library.amlegal.com/nxt/gateway.dll/Pennsylvania/philadelphia_pa/thephiladelphiacode?f=templates$fn=default.htm$3.0$vid=amlegal:philadelphia_pa
+
 import math
 
 AVERAGE_PEOPLE_PER_HOUSEHOLD = 2.35
@@ -89,26 +94,26 @@ def _add_district(name, uses, btype, household_estimator, **kwargs):
                                   **kwargs)
 
 # PRE-2012:
-_add_district("R1",  ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1), new_class = "RSD-1")
-_add_district("R1A", ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1), new_class = "RSD-2")
-_add_district("R2",  ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1), new_class = "RSD-3")
-_add_district("R3",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1), new_class = "RSA-1")
-_add_district("R4",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1), new_class = "RSA-2")
-_add_district("R5",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1), new_class = "RSA-3")
-_add_district("R5A", ['single_family', 'duplex', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(2), new_class = "RTA-1")
-_add_district("R6",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1), new_class = "RSA-4")
-_add_district("R7",  ['single_family', 'duplex', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(2), new_class = "RSA-4")
-_add_district("R8",  ['single_family', 'duplex', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(2), new_class = "RM-1")
+_add_district("R1",  ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1, min_lot_area = 10000), new_class = "RSD-1")
+_add_district("R1A", ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1, min_lot_area = 7800), new_class = "RSD-2")
+_add_district("R2",  ['single_family', 'other_uses'], ['detached'], ConstantHouseholdEstimator(1, min_lot_area = 5000), new_class = "RSD-3")
+_add_district("R3",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1, min_lot_area = 5000), new_class = "RSA-1")
+_add_district("R4",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1, min_lot_area = 3150), new_class = "RSA-2")
+_add_district("R5",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(1, min_lot_area = 2250), new_class = "RSA-3")
+_add_district("R5A", ['single_family', 'duplex', 'residential_related', 'non_residential'], ['detached', 'semi_detached'], ConstantHouseholdEstimator(2, min_lot_area = 2250), new_class = "RTA-1")
+_add_district("R6",  ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1, min_lot_area = 1620), new_class = "RSA-4")
+_add_district("R7",  ['single_family', 'duplex', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(2, min_lot_area = 1620), new_class = "RSA-4")
+_add_district("R8",  ['single_family', 'duplex', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(2, min_lot_area = 1620), new_class = "RM-1")
 # For R-9, minimum lot area is 1440 sqft. with a minimum open area of 30% of the lot (20% for corner lots)
 # The average Philly block is 250000 square feet, so the % of an average block taken by corner R-9 lots is
 # 1440*4/250000 ~= 2%. But let's be generous and say that there are two minor streets running throug the block,
 # allowing for 16 corners per whole block. So that's 1440*16/250000 ~= 9%. So let's say the average minimum open area
 # of a R-9 lot is 29.1% of the lot.
 _add_district("R9",  ['single_family', 'duplex', 'multi_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], MaximumFloorsHouseholdEstimator(0.291, 3), new_class = "RM-1")
-_add_district("R9A", ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1), new_class = "RSA-5")
+_add_district("R9A", ['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1, min_lot_area = 1440), new_class = "RSA-5")
 _add_district("R10", ['single_family', 'duplex', 'multi_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], MaximumFloorsHouseholdEstimator(0.291, 3), new_class = "RM-1")
-_add_district("R10A",['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1), new_class = "RSA-5")
-_add_district("R10B",['single_family', 'duplex', 'other_uses'], ['detached', 'semi_detached', 'attached', 'multiple'], ConstantHouseholdEstimator(2), new_class = "RM-1")
+_add_district("R10A",['single_family', 'residential_related', 'non_residential'], ['detached', 'semi_detached', 'attached'], ConstantHouseholdEstimator(1, min_lot_area = 1440), new_class = "RSA-5")
+_add_district("R10B",['single_family', 'duplex', 'other_uses'], ['detached', 'semi_detached', 'attached', 'multiple'], ConstantHouseholdEstimator(2, min_lot_area = 1440), new_class = "RM-1")
 _add_district("R11", ['single_family', 'duplex', 'multi_family', 'other_uses'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(30), new_class = "RM-2")
 _add_district("R11A",['single_family', 'duplex', 'multi_family', 'other_uses'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(50), new_class = "RM-2")
 _add_district("R12", ['single_family', 'duplex', 'multi_family', 'other_uses'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(70), new_class = "RM-2")

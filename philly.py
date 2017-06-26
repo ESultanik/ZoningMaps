@@ -122,6 +122,20 @@ _add_district("RC3", ['single_family', 'residential_related', 'non_residential',
 _add_district("RC4", ['single_family', 'residential_related', 'non_residential', 'hotel'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(500), new_class = "RMX-3")
 _add_district("RC6", ['single_family', 'residential_related'], ['detached', 'semi_detached', 'attached', 'multiple'], GrossFloorAreaHouseholdEstimator(150), new_class = "RMX-1")
 
+# Old commercial and mixed-use districts:
+for name, equiv in (
+        ("C1","CMX-1"),
+        ("C2","CMX-2"),
+        ("OC","CMX-2"),
+        ("C3","CMX-3"),
+        ("C4","CMX-4"),
+        ("C5","CMX-5"),
+        ("L4","ICMX"),
+        ("L5","ICMX"),
+):
+    _add_district(name, [], [], EquivalentNewZoningHouseholdEstimator(equiv), new_class = equiv)
+
+
 # CURRENT:
 _add_district("RSD-1", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))
 _add_district("RSD-2", ['single_family'], ['detached'], ConstantHouseholdEstimator(1))

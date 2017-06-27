@@ -196,3 +196,7 @@ _add_district("CMX-4", ['single_family'], ['attached'], GrossFloorAreaEstimator(
 _add_district("CMX-5", ['single_family'], ['attached'], GrossFloorAreaEstimator(2000), GrossFloorAreaHouseholdEstimator(2000))
 _add_district("IRMX", ['single_family'], ['attached'], GrossFloorAreaEstimator(500), GrossFloorAreaHouseholdEstimator(500))
 _add_district("ICMX", ['single_family'], ['attached'], GrossFloorAreaEstimator(500), GrossFloorAreaHouseholdEstimator(500))
+_add_district("I-1", [], [], GrossFloorAreaEstimator(225), ConstantHouseholdEstimator(0))
+_add_district("I-2", [], [], GrossFloorAreaEstimator(500), ConstantHouseholdEstimator(0))
+_add_district("I-3", [], [], GrossFloorAreaEstimator(500), ConstantHouseholdEstimator(0))
+_add_district("I-P", [], [], MaximumFloorsEstimator(0.0, 6), ConstantHouseholdEstimator(0))

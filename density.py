@@ -10,47 +10,51 @@ class MappingMode:
     SQFT      = "sqft"
     RESIDENCY = "residency"
 
-class ResidencyMetric(object):
-    def __init__(self):
-        self.old_occupancy = 0
-        self.new_occupancy = 0
+class MaxDistrict(object):
+    def __init__(self, new_district, sqft, value_function):
+        self.values = []
+        self.value_function = value_function
+        self.new_max = value_function(new_district, sqft)
+        self.new_district = new_district
+        self.old_max = None
+        self.old_districts = []
+        self.sqft = sqft
+    def add(self, old_district):
+        self.old_districts.append(old_district)
+        self.values.append(self.value_function(old_district, self.sqft))
+        self.old_max = max(self.values)
+    def get_placemark(self):
+        if self.new_max == self.old_max:
+            return None, None
+        elif self.new_max > self.old_max:
+            change = "%.2f%% increase" % (((self.new_max / self.old_max) - 1.0) * 100.0)
+            color = "%s00ff00" % hex(int(min(((self.new_max / self.old_max) - 1.0), 1.0) * 128 + 0.5))[2:]
+        else:
+            change = "%.2f%% decrease" % ((1.0 - (self.new_max / self.old_max)) * 100.0)
+            color = "%s0000ff" % hex(int(min((1.0 - (self.new_max / self.old_max)), 1.0) * 128 + 0.5))[2:]
+        return "%s => %s (%s)" % (self.old_max, self.new_max, change), color
+    
+class MaxValueMetric(object):
+    def __init__(self, name, value_function):
+        self.name = name
+        self.value_function = value_function
+        self.old_value = 0
+        self.new_value = 0
     def new_district(self, *args):
-        class District(object):
-            def __init__(self, new_district, sqft):
-                self.occupancies = []
-                self.new_max_occupancy = new_district.resident_bounds(sqft)[1]
-                self.new_district = new_district
-                self.old_max_occupancy = None
-                self.old_districts = []
-                self.sqft = sqft
-            def add(self, old_district):
-                self.old_districts.append(old_district)
-                self.occupancies.append(old_district.resident_bounds(self.sqft)[1])
-                self.old_max_occupancy = max(self.occupancies)
-            def get_placemark(self):
-                if self.new_max_occupancy == self.old_max_occupancy:
-                    return None, None
-                elif self.new_max_occupancy > self.old_max_occupancy:
-                    occupancy_change = "%.2f%% increase" % (((self.new_max_occupancy / self.old_max_occupancy) - 1.0) * 100.0)
-                    color = "%s00ff00" % hex(int(min(((self.new_max_occupancy / self.old_max_occupancy) - 1.0), 1.0) * 128 + 0.5))[2:]
-                else:
-                    occupancy_change = "%.2f%% decrease" % ((1.0 - (self.new_max_occupancy / self.old_max_occupancy)) * 100.0)
-                    color = "%s0000ff" % hex(int(min((1.0 - (self.new_max_occupancy / self.old_max_occupancy)), 1.0) * 128 + 0.5))[2:]
-                return "Maximum occupancy: %s => %s (%s)" % (self.old_max_occupancy, self.new_max_occupancy, occupancy_change), color
-        return District(*args)
+        return MaxDistrict(*args, value_function = self.value_function)
     def add_district(self, district):
-        if district.occupancies:
-            self.old_occupancy += district.old_max_occupancy
-            self.new_occupancy += district.new_max_occupancy
+        if district.values:
+            self.old_value += district.old_max
+            self.new_value += district.new_max
             return True
         return False
     def finalize(self):
-        sys.stderr.write(" Pre-2012 maximum occupancy in residential zoning: %s\n" % self.old_occupancy)
-        sys.stderr.write("Post-2012 maximum occupancy in residential zoning: %s\n" % self.new_occupancy)
+        sys.stderr.write(" Pre-2012 %s in residential zoning: %s\n" % (self.name, self.old_value))
+        sys.stderr.write("Post-2012 %s in residential zoning: %s\n" % (self.name, self.new_value))
 
 def map_to_kml(zoning_map, metric = None):
     if metric is None:
-        metric = ResidencyMetric()
+        metric = MaxValueMetric("maximum residency", lambda district, sqft : district.resident_bounds(sqft)[1])
     k = kml.KML()
     ns = '{http://www.opengis.net/kml/2.2}'
     d = kml.Document(ns, 'PHL Zoning Density Changes', 'Philadelphia Residential Zoning Density Changes 2012 to 2017', 'A map of the density changes between current (2017) zoning plots and the previous (Pre-2012) classifications.')
@@ -84,7 +88,7 @@ def map_to_kml(zoning_map, metric = None):
         message, color = district.get_placemark()
         if message is not None:
             for poly in polygons:
-                p = kml.Placemark(ns, str(feature.objectid), "%s => %s" % (old_zoning, fzoning), "%d sqft.; %s" % (int(lot_sqft + 0.5), message))
+                p = kml.Placemark(ns, str(feature.objectid), "%s => %s" % (old_zoning, fzoning), "%d sqft.; %s %s" % (int(lot_sqft + 0.5), metric.name, message))
                 p.append_style(fastkml.styles.Style(ns=ns, styles=[fastkml.styles.PolyStyle(ns=ns, color=color, fill=1, outline=0)]))
                 p.geometry = poly
                 f.append(p)

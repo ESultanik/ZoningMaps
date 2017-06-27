@@ -1,5 +1,5 @@
 .PHONY : all
-all : residential_density.kml structural_density.kml
+all : residential_density.kml structural_density.kml intersected.kml
 
 residential_density.kml : intersected.json
 	python density.py -residency $< > $@

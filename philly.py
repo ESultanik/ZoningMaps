@@ -77,7 +77,7 @@ class GrossFloorAreaHouseholdEstimator(GrossFloorAreaEstimator):
         super(GrossFloorAreaHouseholdEstimator, self).__init__(gross_floor_area_percent)
         self.square_feet_per_resident = square_feet_per_resident
     def __call__(self, lot_area):
-        return int(math.ceil((super(GrossFloorAreaHouseholdEstimator, self)(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+        return int(math.ceil((super(GrossFloorAreaHouseholdEstimator, self).__call__(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
 class EquivalentNewZoningAreaEstimator(object):
     def __init__(self, new_class):
@@ -103,7 +103,7 @@ class MaximumFloorsHouseholdEstimator(MaximumFloorsEstimator):
         super(MaximumFloorsHouseholdEstimator, self).__init__(minimum_open_area_percentage, maximum_floors)
         self.square_feet_per_resident = square_feet_per_resident
     def __call__(self, lot_area):
-        return int(math.ceil((super(MaximumFloorsHouseholdEstimator, self)(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
+        return int(math.ceil((super(MaximumFloorsHouseholdEstimator, self).__call__(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
 def R10BSquareFootageEstimator(lot_area):
     num_houses = max(int(float(lot_area) / (1440.0 + 250.0)), 1)

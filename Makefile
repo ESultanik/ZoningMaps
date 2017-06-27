@@ -1,5 +1,11 @@
-density.kml : intersected.json
-	python density.py $< > $@
+.PHONY : all
+all : residential_density.kml structural_density.kml
+
+residential_density.kml : intersected.json
+	python density.py -residency $< > $@
+
+structural_density.kml : intersected.json
+	python density.py -sqft $< > $@
 
 intersected.kml : intersected.json
 	python mapping.py $< > $@

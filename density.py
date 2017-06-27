@@ -98,5 +98,16 @@ def map_to_kml(zoning_map, metric = None):
 if __name__ == "__main__":
     import sys
 
-    with open(sys.argv[1], 'r') as f:
-        print map_to_kml(zoning.ZoningMap(f)).to_string(prettyprint=True)
+    metric = None
+    path = None
+
+    if sys.argv[1] == '-sqft':
+        metric = MaxValueMetric("maximum sqft.", lambda district, sqft : district.estimate_maximum_sqft(sqft))
+        path = sys.argv[2]
+    elif sys.argv[1] == '-residency':
+        path = sys.argv[2]
+    else:
+        path = sys.argv[1]
+    
+    with open(path, 'r') as f:
+        print map_to_kml(zoning.ZoningMap(f), metric = metric).to_string(prettyprint=True)

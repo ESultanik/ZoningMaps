@@ -79,6 +79,12 @@ class GrossFloorAreaHouseholdEstimator(GrossFloorAreaEstimator):
     def __call__(self, lot_area):
         return int(math.ceil((super(GrossFloorAreaHouseholdEstimator, self)(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
 
+class EquivalentNewZoningHouseholdEstimator(object):
+    def __init__(self, new_class):
+        self.new_class = new_class
+    def __call__(self, lot_area):
+        return ZONING[self.new_class].household_estimator(lot_area)
+    
 class MaximumFloorsEstimator(object):
     def __init__(self, minimum_open_area_percentage, maximum_floors):
         self.minimum_open_area_percentage = minimum_open_area_percentage
@@ -92,12 +98,6 @@ class MaximumFloorsHouseholdEstimator(MaximumFloorsEstimator):
         self.square_feet_per_resident = square_feet_per_resident
     def __call__(self, lot_area):
         return int(math.ceil((super(MaximumFloorsHouseholdEstimator, self)(lot_area) / self.square_feet_per_resident) / AVERAGE_PEOPLE_PER_HOUSEHOLD))
-
-class EquivalentNewZoningHouseholdEstimator(object):
-    def __init__(self, new_class):
-        self.new_class = new_class
-    def __call__(self, lot_area):
-        return ZONING[self.new_class].household_estimator(lot_area)
     
 ZONING = {}
 

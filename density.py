@@ -26,6 +26,9 @@ class MaxDistrict(object):
     def get_placemark(self):
         if self.new_max == self.old_max:
             return None, None
+        elif self.old_max == 0:
+            change = "infinite increase"
+            color = "ff00ff00"
         elif self.new_max > self.old_max:
             change = "%.2f%% increase" % (((self.new_max / self.old_max) - 1.0) * 100.0)
             color = "%s00ff00" % hex(int(min(((self.new_max / self.old_max) - 1.0), 1.0) * 128 + 0.5))[2:]

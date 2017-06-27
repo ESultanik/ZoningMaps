@@ -52,8 +52,8 @@ class MaxValueMetric(object):
             return True
         return False
     def finalize(self):
-        sys.stderr.write(" Pre-2012 %s in residential zoning: %s\n" % (self.name, self.old_value))
-        sys.stderr.write("Post-2012 %s in residential zoning: %s\n" % (self.name, self.new_value))
+        sys.stderr.write(" Pre-2012 %s: %s\n" % (self.name, self.old_value))
+        sys.stderr.write("Post-2012 %s: %s\n" % (self.name, self.new_value))
 
 def map_to_kml(zoning_map, metric = None):
     if metric is None:

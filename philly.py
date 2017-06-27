@@ -164,8 +164,14 @@ for name, equiv in (
         ("C3","CMX-3"),
         ("C4","CMX-4"),
         ("C5","CMX-5"),
+        ("L1","I-1"),
+        ("L2","I-1"),
+        ("L3","I-1"),
         ("L4","ICMX"),
         ("L5","ICMX"),
+        ("G1","I-2"),
+        ("G2","I-2"),
+        ("LR","I-3"),
 ):
     _add_district(name, [], [], EquivalentNewZoningAreaEstimator(equiv), EquivalentNewZoningHouseholdEstimator(equiv), new_class = equiv)
 

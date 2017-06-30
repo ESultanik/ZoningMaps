@@ -4,6 +4,7 @@ import shapely
 import sys
 
 import philly
+import septa
 import zoning
 
 class MappingMode:
@@ -55,6 +56,47 @@ class MaxValueMetric(object):
         sys.stderr.write(" Pre-2012 %s: %s\n" % (self.name, self.old_value))
         sys.stderr.write("Post-2012 %s: %s\n" % (self.name, self.new_value))
 
+def zoning_data(zoning_map):
+    metrics = (
+        MaxValueMetric("maximum residency", lambda district, sqft : district.resident_bounds(sqft)[1]),
+        MaxValueMetric("maximum sqft.", lambda district, sqft : district.estimate_maximum_sqft(sqft))
+    )
+    
+    for feature in zoning_map:
+        fzoning = feature.zoning
+        while type(fzoning) == list and len(fzoning) == 1:
+            fzoning = fzoning[0]
+        fzoning = str(fzoning)
+        if fzoning not in philly.ZONING:
+            continue
+        elif not feature.old_zoning:
+            continue
+        zonings = []
+        old_zoning = None
+        lot_sqft = zoning.square_meters_to_square_feet(feature.area())
+        ret = [fzoning]
+        for metric in metrics:
+            district = metric.new_district(philly.ZONING[fzoning], lot_sqft)
+            for z in feature.old_zoning:
+                if old_zoning is None:
+                    zonings.append(' '.join(z))
+                if z[0] in philly.ZONING:
+                    district.add(philly.ZONING[z[0]])
+            if old_zoning is None:
+                old_zoning = " and ".join(zonings)
+                ret.append(old_zoning)
+            m = metric.add_district(district)
+            if not m:
+                ret = None
+                break
+            ret.append(district.old_max)
+            ret.append(district.new_max)
+        if ret is not None:
+            ret.append(min(map(lambda prt : feature.distance_to(prt[0], prt[1]), septa.PHILLY_RAPID_TRANSIT)))
+            yield tuple(ret)
+    for metric in metrics:
+        metric.finalize()
+        
 def map_to_kml(zoning_map, metric = None):
     if metric is None:
         metric = MaxValueMetric("maximum residency", lambda district, sqft : district.resident_bounds(sqft)[1])
@@ -103,14 +145,24 @@ if __name__ == "__main__":
 
     metric = None
     path = None
+    is_raw = False
 
     if sys.argv[1] == '-sqft':
         metric = MaxValueMetric("maximum sqft.", lambda district, sqft : district.estimate_maximum_sqft(sqft))
         path = sys.argv[2]
     elif sys.argv[1] == '-residency':
         path = sys.argv[2]
+    elif sys.argv[1] == '-raw':
+        path = sys.argv[2]
+        is_raw = True
     else:
         path = sys.argv[1]
     
     with open(path, 'r') as f:
-        print map_to_kml(zoning.ZoningMap(f), metric = metric).to_string(prettyprint=True)
+        if is_raw:
+            import csv
+            csvwriter = csv.writer(sys.stdout, delimiter=',')
+            for data in zoning_data(zoning.ZoningMap(f)):
+                csvwriter.writerow(data)
+        else:
+            print map_to_kml(zoning.ZoningMap(f), metric = metric).to_string(prettyprint=True)

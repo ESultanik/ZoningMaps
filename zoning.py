@@ -1,7 +1,7 @@
 import functools
 import json
 import pyproj
-from shapely.geometry import mapping, MultiPolygon, Polygon, shape
+from shapely.geometry import mapping, MultiPolygon, Point, Polygon, shape
 import shapely.ops
 
 def square_meters_to_acres(m2):
@@ -35,6 +35,18 @@ class ZoningFeature(object):
                 self.geometry)
             self._area = geom_aea.area
         return self._area
+    def distance_to(self, lat, lon):
+        proj = pyproj.Proj(
+                    proj='aea',
+                    lat1=self.geometry.bounds[1],
+                    lat2=self.geometry.bounds[3])
+        transform = functools.partial(
+                pyproj.transform,
+                pyproj.Proj(init='EPSG:4326'),
+                proj)
+        geom_aea = shapely.ops.transform(transform, self.geometry)
+        point_aea = shapely.ops.transform(transform, Point(lon, lat))
+        return geom_aea.distance(point_aea)
     def to_geo(self):
         properties = {
             "OBJECTID":self.objectid,

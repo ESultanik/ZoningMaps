@@ -4,6 +4,7 @@ import shapely
 import sys
 
 import philly
+import progress
 import septa
 import zoning
 
@@ -61,8 +62,10 @@ def zoning_data(zoning_map):
         MaxValueMetric("maximum residency", lambda district, sqft : district.resident_bounds(sqft)[1]),
         MaxValueMetric("maximum sqft.", lambda district, sqft : district.estimate_maximum_sqft(sqft))
     )
-    
+    estimator = progress.TimeEstimator(None, 0, len(zoning_map), precision = 1)
+    yield tuple(["New Zoning", "Old Zoning"] + reduce(lambda x, y : x + y, map(lambda m : ["New " + m.name, "Old " + m.name], metrics)) + ["Distance to Closest Rapid Transit (meters)"])
     for feature in zoning_map:
+        estimator.increment()
         fzoning = feature.zoning
         while type(fzoning) == list and len(fzoning) == 1:
             fzoning = fzoning[0]
@@ -89,8 +92,8 @@ def zoning_data(zoning_map):
             if not m:
                 ret = None
                 break
-            ret.append(district.old_max)
             ret.append(district.new_max)
+            ret.append(district.old_max)
         if ret is not None:
             ret.append(min(map(lambda prt : feature.distance_to(prt[0], prt[1]), septa.PHILLY_RAPID_TRANSIT)))
             yield tuple(ret)

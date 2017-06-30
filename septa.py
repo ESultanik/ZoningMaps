@@ -28,3 +28,48 @@ MFL_STATIONS = (
     (40.016534, -75.083788, "Arrott Transportation Center"),
     (40.023359, -75.077165, "Frankford Transportation Center"),
 )
+
+BSL_STATIONS = (
+    (40.041921, -75.137039, "Fern Rock Transportation Center"),
+    (40.039046, -75.144689, "Olney Transportation Center"),
+    (40.039046, -75.144689, "Logan"),
+    (40.016940, -75.149474, "Hunting Park"),
+    (40.009264, -75.151212, "Erie"),
+    (40.001539, -75.153104, "Allegheny"),
+    (39.993953, -75.154552, "North Philadelphia"),
+    (39.987032, -75.156043, "Susquehanna-Dauphin"),
+    (39.978639, -75.157813, "Cecil B. Moore"),
+    (39.971432, -75.159382, "Girard"),
+    (39.967058, -75.160433, "Fairmount"),
+    (39.962371, -75.161399, "Spring Garden"),
+    (39.957494, -75.162343, "Race Vine"),
+    (39.952428, -75.164038, "City Hall"),
+    (39.949401, -75.164285, "Walnut-Locust"),
+    (39.944063, -75.165422, "Lombard South"),
+    (39.935853, -75.167385, "Ellsworth Federal"),
+    (39.929814, -75.168544, "Tasker Morris"),
+    (39.924359, -75.169617, "Snyder"),
+    (39.916789, -75.171344, "Oregon"),
+    (39.905432, -75.173801, "AT&T"),
+    (39.955040, -75.152665, "Chinatown"),
+)
+
+PATCO_STATIONS = (
+    (39.948629, -75.167758, "15th-16th and Locust"),
+    (39.947943, -75.162365, "12th-13th and Locust"),
+    (39.947341, -75.157698, "9th-10th and Locust"),
+    (39.951149, -75.153586, "8th and Market"),
+    (39.955297, -75.150155, "Franklin Square"),
+)
+
+UNDERGROUND_TROLLEY_STATIONS = (
+    (39.955527, -75.193955, "36th Street Portal"),
+    (39.955058, -75.189309, "33rd Street"),
+    (39.954848, -75.183479, "30th Street"),
+    (39.954010, -75.176665, "22nd Street"),
+    (39.953336, -75.171636, "19th Street"),
+    (39.952501, -75.165379, "15th Street"),
+    (39.952534, -75.162554, "13th Street"),
+)
+
+PHILLY_RAPID_TRANSIT = MFL_STATIONS + BSL_STATIONS + PATCO_STATIONS + UNDERGROUND_TROLLEY_STATIONS

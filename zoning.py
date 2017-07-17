@@ -35,6 +35,18 @@ class ZoningFeature(object):
                 self.geometry)
             self._area = geom_aea.area
         return self._area
+    def diameter(self):
+        proj = pyproj.Proj(
+                    proj='aea',
+                    lat1=self.geometry.bounds[1],
+                    lat2=self.geometry.bounds[3])
+        transform = functools.partial(
+                pyproj.transform,
+                pyproj.Proj(init='EPSG:4326'),
+                proj)
+        p1_aea = shapely.ops.transform(transform, Point(self.geometry.bounds[0], self.geometry.bounds[1]))
+        p2_aea = shapely.ops.transform(transform, Point(self.geometry.bounds[2], self.geometry.bounds[3]))
+        return p1_aea.distance(p2_aea)
     def distance_to(self, lat, lon):
         proj = pyproj.Proj(
                     proj='aea',

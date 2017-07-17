@@ -1,5 +1,6 @@
 import functools
 import json
+import math
 import pyproj
 from shapely.geometry import mapping, MultiPolygon, Point, Polygon, shape
 import shapely.ops
@@ -35,6 +36,10 @@ class ZoningFeature(object):
                 self.geometry)
             self._area = geom_aea.area
         return self._area
+    def find_contained_points(self, points, kd_tree):
+        for i in kd_tree.query_ball_point((self.geometry.bounds[1], self.geometry.bounds[0]), math.sqrt((self.geometry.bounds[3] - self.geometry.bounds[1])**2 + (self.geometry.bounds[2] - self.geometry.bounds[0])**2)):
+            if self.geometry.contains(Point(points[i][1], points[i][0])):
+                yield i
     def diameter(self):
         proj = pyproj.Proj(
                     proj='aea',

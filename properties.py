@@ -38,7 +38,6 @@ def load_opm_property_data(path = None):
         for row in reader:
             if header is None:
                 header = row
-                print header
                 continue
             p = Property()
             for i, v in enumerate(row):

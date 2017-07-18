@@ -13,17 +13,18 @@ class MappingMode:
     RESIDENCY = "residency"
 
 class MaxDistrict(object):
-    def __init__(self, new_district, sqft, value_function):
+    def __init__(self, feature, new_district, sqft, value_function):
         self.values = []
         self.value_function = value_function
-        self.new_max = value_function(new_district, sqft)
+        self.feature = feature
+        self.new_max = value_function(feature, new_district, sqft)
         self.new_district = new_district
         self.old_max = None
         self.old_districts = []
         self.sqft = sqft
     def add(self, old_district):
         self.old_districts.append(old_district)
-        self.values.append(self.value_function(old_district, self.sqft))
+        self.values.append(self.value_function(self.feature, old_district, self.sqft))
         self.old_max = max(self.values)
     def get_placemark(self):
         if self.new_max == self.old_max:
@@ -59,8 +60,8 @@ class MaxValueMetric(object):
 
 def zoning_data(zoning_map):
     metrics = (
-        MaxValueMetric("maximum residency", lambda district, sqft : district.resident_bounds(sqft)[1]),
-        MaxValueMetric("maximum sqft.", lambda district, sqft : district.estimate_maximum_sqft(sqft))
+        MaxValueMetric("maximum residency", lambda feature, district, sqft : district.resident_bounds(sqft)[1]),
+        MaxValueMetric("maximum sqft.", lambda feature, district, sqft : district.estimate_maximum_sqft(sqft))
     )
     estimator = progress.TimeEstimator(None, 0, len(zoning_map), precision = 1)
     yield tuple(["New Zoning", "Old Zoning"] + reduce(lambda x, y : x + y, map(lambda m : ["New " + m.name, "Old " + m.name], metrics)) + ["Distance to Closest Rapid Transit (meters)"])
@@ -79,7 +80,7 @@ def zoning_data(zoning_map):
         lot_sqft = zoning.square_meters_to_square_feet(feature.area())
         ret = [fzoning]
         for metric in metrics:
-            district = metric.new_district(philly.ZONING[fzoning], lot_sqft)
+            district = metric.new_district(feature, philly.ZONING[fzoning], lot_sqft)
             for z in feature.old_zoning:
                 if old_zoning is None:
                     zonings.append(' '.join(z))
@@ -102,7 +103,7 @@ def zoning_data(zoning_map):
         
 def map_to_kml(zoning_map, metric = None):
     if metric is None:
-        metric = MaxValueMetric("maximum residency", lambda district, sqft : district.resident_bounds(sqft)[1])
+        metric = MaxValueMetric("maximum residency", lambda feature, district, sqft : district.resident_bounds(sqft)[1])
     k = kml.KML()
     ns = '{http://www.opengis.net/kml/2.2}'
     d = kml.Document(ns, 'PHL Zoning Density Changes', 'Philadelphia Residential Zoning Density Changes 2012 to 2017', 'A map of the density changes between current (2017) zoning plots and the previous (Pre-2012) classifications.')
@@ -120,7 +121,7 @@ def map_to_kml(zoning_map, metric = None):
             continue
         zonings = []
         lot_sqft = zoning.square_meters_to_square_feet(feature.area())
-        district = metric.new_district(philly.ZONING[fzoning], lot_sqft)
+        district = metric.new_district(feature, philly.ZONING[fzoning], lot_sqft)
         for z in feature.old_zoning:
             zonings.append(' '.join(z))
             if z[0] in philly.ZONING:
@@ -141,7 +142,7 @@ def map_to_kml(zoning_map, metric = None):
                 p.geometry = poly
                 f.append(p)
     metric.finalize()
-    return k
+    return k    
 
 if __name__ == "__main__":
     import sys
@@ -151,10 +152,35 @@ if __name__ == "__main__":
     is_raw = False
 
     if sys.argv[1] == '-sqft':
-        metric = MaxValueMetric("maximum sqft.", lambda district, sqft : district.estimate_maximum_sqft(sqft))
+        metric = MaxValueMetric("maximum sqft.", lambda feature, district, sqft : district.estimate_maximum_sqft(sqft))
         path = sys.argv[2]
     elif sys.argv[1] == '-residency':
         path = sys.argv[2]
+    elif sys.argv[1] == '-current-residency':
+        path = sys.argv[2]
+
+        import properties
+
+        points, data, kdtree = properties.compile_data()
+        
+        def built_residential_capacity(feature, district, sqft):
+            feature_value = 0.0
+            feature_livable_area = 0.0
+            for i in feature.find_contained_points(points, kdtree):
+                feature_value += data[i][0]
+                feature_livable_area += data[i][1]
+            bound = district.resident_bounds(sqft)[1]
+            if bound == 0:
+                bound = 1.0
+            else:
+                bound = min(1.0, (feature_livable_area / 450.0) / bound)
+            #if bound == 0:
+            #    value_diff = 0.0
+            #else:
+            #    value_diff = feature_value / min(1.0, (feature_livable_area / 450.0) / bound) - feature_value
+            return bound
+        
+        metric = MaxValueMetric("built residential capacity", built_residential_capacity)
     elif sys.argv[1] == '-raw':
         path = sys.argv[2]
         is_raw = True

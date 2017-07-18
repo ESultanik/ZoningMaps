@@ -45,7 +45,7 @@ def load_opm_property_data(path = None):
                 setattr(p, header[i], v)
             yield p
 
-if __name__ == "__main__":
+def compile_data():
     points = []
     data = []
     for p in load_opm_property_data():
@@ -62,6 +62,12 @@ if __name__ == "__main__":
         except ValueError:
             p.total_livable_area = 0.0
         data.append((p.market_value, p.total_livable_area))
+    kdtree = scipy.spatial.KDTree(points)
+    return points, data, kdtree
+    
+            
+if __name__ == "__main__":
+    points, data, kdtree = compile_data()
 
     import sys
 
@@ -69,7 +75,6 @@ if __name__ == "__main__":
 
     with open(sys.argv[1], 'r') as f:
         zmap = zoning.ZoningMap(f)
-        kdtree = scipy.spatial.KDTree(points)
         for feature in zmap:
             fzoning = feature.zoning
             while type(fzoning) == list and len(fzoning) == 1:
@@ -84,7 +89,7 @@ if __name__ == "__main__":
                 feature_livable_area += data[i][1]
             bound = philly.ZONING[fzoning].resident_bounds(zoning.square_meters_to_square_feet(feature.area()))[1]
             if bound == 0:
-                bound 1.0
+                bound = 1.0
             else:
                 bound = min(1.0, (feature_livable_area / 450.0) / bound)
             if bound == 0:

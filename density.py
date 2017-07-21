@@ -58,6 +58,44 @@ class MaxValueMetric(object):
         sys.stderr.write(" Pre-2012 %s: %s\n" % (self.name, self.old_value))
         sys.stderr.write("Post-2012 %s: %s\n" % (self.name, self.new_value))
 
+class BuiltResidentialCapacity(object):
+    def __init__(self, feature, district, sqft, compiled_data):
+        self.points, self.data, self.kdtree = compiled_data
+        self.feature = feature
+        self.district = district
+        self.sqft = sqft
+        self.feature_value = 0.0
+        self.feature_livable_area = 0.0
+        for i in feature.find_contained_points(self.points, self.kdtree):
+            self.feature_value += self.data[i][0]
+            self.feature_livable_area += self.data[i][1]
+        self.value = district.resident_bounds(sqft)[1]
+        if self.value == 0:
+            self.value = 1.0
+        else:
+            self.value = min(1.0, (self.feature_livable_area / 450.0) / self.value)
+    def add(self, old_district):
+        pass
+    def get_placemark(self):
+        capacity = "%.2f%%" % (self.value * 100.0)
+        color = "%s0000ff" % hex(int((1.0 - self.value) * 128.0 + 0.5))[2:]
+        return capacity, color
+
+class CurrentValueMetric(object):
+    def __init__(self, name, metric_class, compiled_data):
+        self.name = name
+        self.metric_class = metric_class
+        self.values = []
+        self.compiled_data = compiled_data
+    def new_district(self, *args):
+        metric = self.metric_class(*args, compiled_data = self.compiled_data)
+        self.values.append(metric.value)
+        return metric
+    def add_district(self, district):
+        return True
+    def finalize(self):
+        sys.stderr.write("Average %s: %.2f\n" % (self.name, float(sum(self.values))/float(len(self.values))))
+        
 def zoning_data(zoning_map):
     metrics = (
         MaxValueMetric("maximum residency", lambda feature, district, sqft : district.resident_bounds(sqft)[1]),
@@ -161,26 +199,7 @@ if __name__ == "__main__":
 
         import properties
 
-        points, data, kdtree = properties.compile_data()
-        
-        def built_residential_capacity(feature, district, sqft):
-            feature_value = 0.0
-            feature_livable_area = 0.0
-            for i in feature.find_contained_points(points, kdtree):
-                feature_value += data[i][0]
-                feature_livable_area += data[i][1]
-            bound = district.resident_bounds(sqft)[1]
-            if bound == 0:
-                bound = 1.0
-            else:
-                bound = min(1.0, (feature_livable_area / 450.0) / bound)
-            #if bound == 0:
-            #    value_diff = 0.0
-            #else:
-            #    value_diff = feature_value / min(1.0, (feature_livable_area / 450.0) / bound) - feature_value
-            return bound
-        
-        metric = MaxValueMetric("built residential capacity", built_residential_capacity)
+        metric = CurrentValueMetric("built residential capacity", BuiltResidentialCapacity, properties.compile_data())
     elif sys.argv[1] == '-raw':
         path = sys.argv[2]
         is_raw = True

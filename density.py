@@ -66,9 +66,11 @@ class BuiltResidentialCapacity(object):
         self.sqft = sqft
         self.feature_value = 0.0
         self.feature_livable_area = 0.0
+        self.taxable_building = 0.0
         for i in feature.find_contained_points(self.points, self.kdtree):
-            self.feature_value += self.data[i][0]
-            self.feature_livable_area += self.data[i][1]
+            self.feature_value += self.data[i].market_value
+            self.feature_livable_area += self.data[i].total_livable_area
+            self.taxable_building += self.data[i].taxable_building
         self.value = district.resident_bounds(sqft)[1]
         if self.value == 0:
             self.value = 1.0
@@ -81,6 +83,20 @@ class BuiltResidentialCapacity(object):
         color = "%s0000ff" % hex(int((1.0 - self.value) * 128.0 + 0.5))[2:]
         return capacity, color
 
+class UnrealizedTaxRevenue(BuiltResidentialCapacity):
+    def __init__(self, *args, **kwargs):
+        super(UnrealizedTaxRevenue, self).__init__(*args, **kwargs)
+        if self.value == 0.0:
+            # it is currently at minimum capacity, so say that it has zero potential for additional tax revenue
+            # (this is likely incorrect, but would be hard to bound)
+            self.value = 0.0
+        else:
+            self.value = self.taxable_building / self.value
+    def get_placemark(self):
+        unralized = "%.2f%%" % (self.value * 100.0)
+        color = "%s0000ff" % hex(int((1.0 - self.value) * 128.0 + 0.5))[2:]
+        return unralized, color
+    
 class CurrentValueMetric(object):
     def __init__(self, name, metric_class, compiled_data):
         self.name = name
@@ -200,6 +216,12 @@ if __name__ == "__main__":
         import properties
 
         metric = CurrentValueMetric("built residential capacity", BuiltResidentialCapacity, properties.compile_data())
+    elif sys.argv[1] == '-tax':
+        path = sys.argv[2]
+
+        import properties
+
+        metric = CurrentValueMetric("unrealized tax revenue", UnrealizedTaxRevenue, properties.compile_data())
     elif sys.argv[1] == '-raw':
         path = sys.argv[2]
         is_raw = True

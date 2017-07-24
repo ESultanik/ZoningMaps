@@ -1,5 +1,5 @@
 .PHONY : all
-all : residential_density.kml built_residential_density.kml structural_density.kml intersected.kml zoning.csv
+all : residential_density.kml built_residential_density.kml structural_density.kml intersected.kml unrealized_tax_revenue.kml zoning.csv
 
 zoning.csv : intersected.json
 	python density.py -raw $< > $@
@@ -12,6 +12,9 @@ structural_density.kml : intersected.json
 
 built_residential_density.kml : intersected.json
 	python density.py -current-residency $< > $@
+
+unrealized_tax_revenue.kml : intersected.json
+	python density.py -tax $< > $@
 
 intersected.kml : intersected.json
 	python mapping.py $< > $@

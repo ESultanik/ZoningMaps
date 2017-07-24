@@ -44,6 +44,12 @@ def load_opm_property_data(path = None):
                 setattr(p, header[i], v)
             yield p
 
+def field_to_float(obj, field_name):
+    try:
+        setattr(obj, field_name, float(getattr(obj, field_name)))
+    except ValueError:
+        setattr(obj, field_name, 0.0)
+            
 def compile_data():
     points = []
     data = []
@@ -52,18 +58,11 @@ def compile_data():
             points.append((float(p.lat), float(p.lng)))
         except ValueError:
             pass
-        try:
-            p.market_value = float(p.market_value)
-        except ValueError:
-            p.market_value = 0.0
-        try:
-            p.total_livable_area = float(p.total_livable_area)
-        except ValueError:
-            p.total_livable_area = 0.0
-        data.append((p.market_value, p.total_livable_area))
+        for field in ("market_value", "total_livable_area", "taxable_building", "taxable_land"):
+            field_to_float(p, field)
+        data.append(p)
     kdtree = scipy.spatial.KDTree(points)
-    return points, data, kdtree
-    
+    return points, data, kdtree    
             
 if __name__ == "__main__":
     points, data, kdtree = compile_data()
@@ -84,8 +83,8 @@ if __name__ == "__main__":
             feature_value = 0.0
             feature_livable_area = 0.0
             for i in feature.find_contained_points(points, kdtree):
-                feature_value += data[i][0]
-                feature_livable_area += data[i][1]
+                feature_value += data[i].market_value
+                feature_livable_area += data[i].total_livable_area
             bound = philly.ZONING[fzoning].resident_bounds(zoning.square_meters_to_square_feet(feature.area()))[1]
             if bound == 0:
                 bound = 1.0
